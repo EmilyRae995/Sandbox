@@ -72,7 +72,7 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     # output volume selector
     #
     self.outputSelector = slicer.qMRMLNodeComboBox()
-    self.outputSelector.nodeTypes = ["vtkMRMLMarkupsFiducialNode"]
+    self.outputSelector.nodeTypes = ["vtkMRMLModelNode"]
     self.outputSelector.selectNodeUponCreation = False
     self.outputSelector.addEnabled = True
     self.outputSelector.removeEnabled = True
@@ -81,7 +81,7 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     self.outputSelector.showChildNodeTypes = False
     self.outputSelector.setMRMLScene( slicer.mrmlScene )
     self.outputSelector.setToolTip( "Pick the output to the algorithm." )
-    parametersFormLayout.addRow("Input Markups: ", self.inputSelector)
+    parametersFormLayout.addRow("Output Model: ", self.outputSelector)
 
     #
     # threshold value
@@ -248,12 +248,37 @@ class MyFirstModuleEmilyLogic(ScriptedLoadableModuleLogic):
 
     return centerOfMass
 
-  def run(self, inputMarkups, outputVolume, imageThreshold, enableScreenshots=0):
+  def createSphere(self, centerofMass, markupsNode, outputModel):
+
+    outputModel.CreateDefaultDisplayNodes()
+    outputModeld = outputModel.GetDisplayNode()
+    outputModeld.SetColor(1, 0, 0)
+
+    import numpy as np
+    pos = np.zeros(3)
+    markupsNode.GetNthFiducialPosition(1,pos)
+    radius = np.linalg.norm(pos - centerofMass)
+
+    s = vtk.vtkSphereSource()
+    s.SetRadius(radius)
+    s.SetCenter(centerofMass)
+    s.SetThetaResolution(360)
+    s.SetPhiResolution(360)
+
+    s.Update()
+
+    outputModeld.SetVisibility(True)
+    outputModel.SetAndObservePolyData(s.GetOutput())
+    outputModel.GetDisplayNode().SetSliceIntersectionVisibility(True)
+
+
+  def run(self, inputMarkups, outputModel, imageThreshold, enableScreenshots=0):
     """
     Run the actual algorithm
     """
 
     self.centerOfMass = self.getCenterOfMass(inputMarkups)
+    self.createSphere(self.centerOfMass, inputMarkups, outputModel)
 
     return True
 

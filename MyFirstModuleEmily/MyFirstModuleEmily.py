@@ -57,7 +57,7 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     # input volume selector
     #
     self.inputSelector = slicer.qMRMLNodeComboBox()
-    self.inputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.inputSelector.nodeTypes = ["vtkMRMLMarkupsFiducialNode"]
     self.inputSelector.selectNodeUponCreation = True
     self.inputSelector.addEnabled = False
     self.inputSelector.removeEnabled = False
@@ -66,7 +66,7 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.showChildNodeTypes = False
     self.inputSelector.setMRMLScene( slicer.mrmlScene )
     self.inputSelector.setToolTip( "Pick the input to the algorithm." )
-    parametersFormLayout.addRow("Input Volume: ", self.inputSelector)
+    parametersFormLayout.addRow("Input Markups: ", self.inputSelector)
 
     #
     # output volume selector
@@ -110,6 +110,9 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = False
     parametersFormLayout.addRow(self.applyButton)
 
+    self.centerOfMassValueLabel = qt.QLabel()
+    parametersFormLayout.addRow(self.centerOfMassValueLabel)
+
     # connections
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
@@ -125,13 +128,15 @@ class MyFirstModuleEmilyWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
+      self.applyButton.enabled = self.inputSelector.currentNode()
 
   def onApplyButton(self):
-    logic = MyFirstModuleEmilyLogic()
-    enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
-    imageThreshold = self.imageThresholdSliderWidget.value
-    logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
+      logic = MyFirstModuleEmilyLogic()
+      enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
+      imageThreshold = self.imageThresholdSliderWidget.value
+      logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold,
+                enableScreenshotsFlag)
+      self.centerOfMassValueLabel.text = str(logic.centerOfMass)
 
 #
 # MyFirstModuleEmilyLogic
@@ -227,7 +232,7 @@ class MyFirstModuleEmilyLogic(ScriptedLoadableModuleLogic):
 
     return centerOfMass
 
-  def run(self, inputVolume, outputVolume, imageThreshold, enableScreenshots=0):
+  def run(self, inputMarkups, outputVolume, imageThreshold, enableScreenshots=0):
     """
     Run the actual algorithm
     """
